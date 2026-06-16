@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+# Load .env so HF_TOKEN and other vars are available
+if [ -f "$(dirname "$0")/../.env" ]; then
+  set -a; source "$(dirname "$0")/../.env"; set +a
+fi
+
 MODEL="Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 exec uv run python -m vllm.entrypoints.openai.api_server \
