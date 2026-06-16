@@ -20,4 +20,5 @@ exec uv run python -m vllm.entrypoints.openai.api_server \
     --max-model-len 8192 \
     --gpu-memory-utilization 0.90 \
     --max-num-seqs 32 \
-    --enable-chunked-prefill
+    --enable-chunked-prefill \
+    --enforce-eager
