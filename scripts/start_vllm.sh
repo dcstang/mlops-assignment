@@ -10,6 +10,9 @@ if [ -f "$(dirname "$0")/../.env" ]; then
   set -a; source "$(dirname "$0")/../.env"; set +a
 fi
 
+export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
+export VLLM_TORCH_COMPILE_LEVEL=0
+
 MODEL="Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 exec uv run python -m vllm.entrypoints.openai.api_server \
