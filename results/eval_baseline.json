@@ -13,9 +13,9 @@
       "iter_1": 11,
       "iter_2": 11
     },
-    "error_count": 0
+    "error_count": 1
   },
-  "wall_clock_seconds": 48.65662874886766,
+  "wall_clock_seconds": 93.6381142840255,
   "results": [
     {
       "db_id": "formula_1",
@@ -83,7 +83,7 @@
       "db_id": "formula_1",
       "question": "What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?",
       "gold_sql": "SELECT AVG(CAST(SUBSTR(T2.fastestLapTime, 1, INSTR(T2.fastestLapTime, ':') - 1) AS INTEGER) * 60 + CAST(SUBSTR(T2.fastestLapTime, INSTR(T2.fastestLapTime, ':') + 1) AS REAL)) FROM drivers AS T1 INNER JOIN results AS T2 ON T1.driverId = T2.driverId WHERE T1.surname = 'Hamilton' AND T1.forename = 'Lewis'",
-      "agent_sql": "SELECT AVG(CAST(REPLACE(REPLACE(r.fastestLapTime, ' ', ''), ':', '.') AS REAL)) AS average_fastest_lap_time_seconds\nFROM results r\nJOIN drivers d ON r.driverId = d.driverId\nWHERE d.forename = 'Lewis' AND d.surname = 'Hamilton' AND r.fastestLapTime IS NOT NULL;",
+      "agent_sql": "SELECT AVG(CAST(REPLACE(REPLACE(r.fastestLapTime, ' ', ''), ':', '.') AS REAL)) AS average_fastest_lap_time_seconds\nFROM results r\nJOIN drivers d ON r.driverId = d.driverId\nWHERE d.forename = 'Lewis' AND d.surname = 'Hamilton'\n  AND r.fastestLapTime IS NOT NULL;",
       "iterations": 1,
       "history_correct": [
         false
@@ -95,19 +95,17 @@
       "db_id": "formula_1",
       "question": "From race no. 50 to 100, how many finishers have been disqualified?",
       "gold_sql": "SELECT SUM(IIF(time IS NOT NULL, 1, 0)) FROM results WHERE statusId = 2 AND raceID < 100 AND raceId > 50",
-      "agent_sql": "SELECT COUNT(*) AS disqualified_finishers\nFROM results\nWHERE raceId BETWEEN 50 AND 100\n  AND statusId NOT IN (\n    SELECT statusId\n    FROM status\n    WHERE status NOT LIKE '%Disqualified%'\n  );",
-      "iterations": 1,
-      "history_correct": [
-        false
-      ],
-      "final_correct": false,
-      "error": null
+      "error": "agent request failed: Server error '500 Internal Server Error' for url 'http://localhost:8001/answer'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500",
+      "agent_sql": null,
+      "iterations": 0,
+      "history_correct": [],
+      "final_correct": false
     },
     {
       "db_id": "student_club",
       "question": "Calculate the difference of the total amount spent in all events by the Student_Club in year 2019 and 2020.",
       "gold_sql": "SELECT SUM(CASE WHEN SUBSTR(T1.event_date, 1, 4) = '2019' THEN T2.spent ELSE 0 END) - SUM(CASE WHEN SUBSTR(T1.event_date, 1, 4) = '2020' THEN T2.spent ELSE 0 END) AS num FROM event AS T1 INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event",
-      "agent_sql": "SELECT \n  (SELECT COALESCE(SUM(b.spent), 0) \n   FROM budget b \n   JOIN event e ON b.link_to_event = e.event_id \n   WHERE SUBSTR(e.event_date, 1, 4) = '2019') -\n  (SELECT COALESCE(SUM(b.spent), 0) \n   FROM budget b \n   JOIN event e ON b.link_to_event = e.event_id \n   WHERE SUBSTR(e.event_date, 1, 4) = '2020') AS difference;",
+      "agent_sql": "SELECT \n  (SELECT COALESCE(SUM(b.spent), 0) \n   FROM budget b \n   JOIN event e ON b.link_to_event = e.event_id \n   WHERE SUBSTR(e.event_date, 1, 4) = '2019') -\n  (SELECT COALESCE(SUM(b.spent), 0) \n   FROM budget b \n   JOIN event e ON b.link_to_event = e.event_id \n   WHERE SUBSTR(e.event_date, 1, 4) = '2020') AS amount_difference;",
       "iterations": 1,
       "history_correct": [
         true
@@ -119,7 +117,7 @@
       "db_id": "california_schools",
       "question": "What is the complete address of the school with the lowest excellence rate? Indicate the Street, City, Zip and State.",
       "gold_sql": "SELECT T2.Street, T2.City, T2.State, T2.Zip FROM satscores AS T1 INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode ORDER BY CAST(T1.NumGE1500 AS REAL) / T1.NumTstTakr ASC LIMIT 1",
-      "agent_sql": "SELECT s.Street, s.City, s.Zip, s.State\nFROM schools s\nJOIN satscores ss ON s.CDSCode = ss.cds\nORDER BY (ss.NumGE1500 * 1.0 / ss.NumTstTakr) ASC\nLIMIT 1;",
+      "agent_sql": "SELECT s.Street, s.City, s.Zip, s.State\nFROM schools s\nJOIN satscores ss ON s.CDSCode = ss.cds\nORDER BY ss.NumGE1500 / ss.NumTstTakr ASC\nLIMIT 1;",
       "iterations": 1,
       "history_correct": [
         false
@@ -131,7 +129,7 @@
       "db_id": "toxicology",
       "question": "Calculate the percentage of carcinogenic molecules which contain the Chlorine element.",
       "gold_sql": "SELECT COUNT(CASE WHEN T2.label = '+' AND T1.element = 'cl' THEN T2.molecule_id ELSE NULL END) * 100 / COUNT(T2.molecule_id) FROM atom AS T1 INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id",
-      "agent_sql": "SELECT \n    (COUNT(CASE WHEN a.element = 'Cl' THEN 1 END) * 100.0 / \n     COUNT(*)) AS percentage\nFROM molecule m\nJOIN atom a ON m.molecule_id = a.molecule_id\nWHERE m.label = 'carcinogenic'\n  AND a.element = 'Cl';",
+      "agent_sql": "SELECT \n    (COUNT(CASE WHEN m.label = 'carcinogenic' THEN 1 END) * 100.0 / \n     COUNT(CASE WHEN a.element = 'Cl' THEN 1 END)) AS percentage\nFROM \n    molecule m\nJOIN \n    atom a ON m.molecule_id = a.molecule_id\nWHERE \n    a.element = 'Cl';",
       "iterations": 3,
       "history_correct": [
         false,
@@ -205,10 +203,9 @@
       "db_id": "codebase_community",
       "question": "User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?",
       "gold_sql": "SELECT IIF(T2.ClosedDate IS NULL, 'NOT well-finished', 'well-finished') AS resylt FROM comments AS T1 INNER JOIN posts AS T2 ON T1.PostId = T2.Id WHERE T1.UserId = 23853 AND T1.CreationDate = '2013-07-12 09:08:18.0'",
-      "agent_sql": "SELECT p.Title, p.Body, p.CreationDate, p.Score, p.ViewCount, p.AnswerCount, p.CommentCount, p.FavoriteCount\nFROM posts p\nJOIN comments c ON p.Id = c.PostId\nWHERE c.UserId = 23853\n  AND c.CreationDate = '2013-07-12 09:08:18';",
-      "iterations": 3,
+      "agent_sql": "SELECT p.Title, p.Body, p.Score, p.ViewCount, p.CommentCount, p.AnswerCount, p.FavoriteCount\nFROM posts p\nJOIN comments c ON p.Id = c.PostId\nWHERE c.UserId = 23853\n  AND c.CreationDate LIKE '2013-07-12 09:08:18%';",
+      "iterations": 2,
       "history_correct": [
-        false,
         false,
         false
       ],
@@ -257,7 +254,7 @@
       "db_id": "financial",
       "question": "Please provide the IDs of the 3 female clients with the largest loans.",
       "gold_sql": "SELECT T1.client_id FROM client AS T1 INNER JOIN disp AS T4 on T1.client_id= T4.client_id INNER JOIN account AS T2 ON T4.account_id = T2.account_id  INNER JOIN loan AS T3 ON T2.account_id = T3.account_id and T4.account_id = T3.account_id WHERE T1.gender = 'F' ORDER BY T3.amount DESC LIMIT 3",
-      "agent_sql": "SELECT c.client_id\nFROM client c\nJOIN disp d ON c.client_id = d.client_id\nJOIN account a ON d.account_id = a.account_id\nJOIN loan l ON a.account_id = l.account_id\nWHERE c.gender = 'F'\nORDER BY l.amount DESC\nLIMIT 3;",
+      "agent_sql": "SELECT c.client_id\nFROM client c\nJOIN disp d ON c.client_id = d.client_id\nJOIN loan l ON d.account_id = l.account_id\nWHERE c.gender = 'F'\nORDER BY l.amount DESC\nLIMIT 3;",
       "iterations": 1,
       "history_correct": [
         true
@@ -317,7 +314,7 @@
       "db_id": "thrombosis_prediction",
       "question": "List all patients who were followed up at the outpatient clinic who underwent a laboratory test in October 1991 and had a total blood bilirubin level within the normal range.",
       "gold_sql": "SELECT DISTINCT T1.ID FROM Patient AS T1 INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID WHERE T1.Admission = '-' AND T2.`T-BIL` < 2.0 AND T2.Date LIKE '1991-10-%'",
-      "agent_sql": "SELECT DISTINCT p.*\nFROM \"Patient\" p\nJOIN \"Laboratory\" l ON p.\"ID\" = l.\"ID\"\nWHERE p.\"Admission\" = 'outpatient clinic'\n  AND l.\"Date\" >= '1991-10-01'\n  AND l.\"Date\" < '1991-11-01'\n  AND l.\"T-BIL\" BETWEEN 0.2 AND 1.2\n  AND l.\"T-BIL\" IS NOT NULL;",
+      "agent_sql": "SELECT DISTINCT p.*\nFROM \"Patient\" p\nJOIN \"Laboratory\" l ON p.\"ID\" = l.\"ID\"\nWHERE p.\"Admission\" = 'outpatient clinic'\n  AND l.\"Date\" >= '1991-10-01'\n  AND l.\"Date\" < '1991-11-01'\n  AND l.\"T-BIL\" BETWEEN 0.2 AND 1.2;",
       "iterations": 3,
       "history_correct": [
         false,
@@ -331,7 +328,7 @@
       "db_id": "toxicology",
       "question": "Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?",
       "gold_sql": "SELECT T2.label FROM atom AS T1 INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id WHERE T1.element = 'ca' GROUP BY T2.label ORDER BY COUNT(T2.label) DESC LIMIT 1",
-      "agent_sql": "SELECT \n  CASE \n    WHEN m.label LIKE '%carcinogenic%' THEN 'carcinogenic'\n    ELSE 'non_carcinogenic'\n  END AS carcinogenic_status,\n  COUNT(*) AS count\nFROM molecule m\nJOIN atom a ON m.molecule_id = a.molecule_id\nWHERE a.element = 'Calcium'\nGROUP BY carcinogenic_status\nORDER BY count DESC;",
+      "agent_sql": "SELECT \n  CASE \n    WHEN m.label LIKE '%carcinogenic%' THEN 'carcinogenic'\n    ELSE 'non-carcinogenic'\n  END AS carcinogenic_status,\n  COUNT(*) AS count\nFROM molecule m\nJOIN atom a ON m.molecule_id = a.molecule_id\nWHERE a.element = 'Calcium'\nGROUP BY carcinogenic_status\nORDER BY count DESC;",
       "iterations": 3,
       "history_correct": [
         false,
@@ -373,11 +370,9 @@
       "db_id": "codebase_community",
       "question": "Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?",
       "gold_sql": "SELECT T1.DisplayName FROM users AS T1 INNER JOIN postHistory AS T2 ON T1.Id = T2.UserId INNER JOIN posts AS T3 ON T2.PostId = T3.Id WHERE T1.DisplayName = 'Harvey Motulsky' OR T1.DisplayName = 'Noah Snyder' GROUP BY T1.DisplayName ORDER BY SUM(T3.ViewCount) DESC LIMIT 1",
-      "agent_sql": "SELECT p.Title, p.Score, p.ViewCount\nFROM posts p\nJOIN users u ON p.OwnerUserId = u.Id\nWHERE u.DisplayName IN ('Harvey Motulsky', 'Noah Snyder')\n  AND p.Title IS NOT NULL\n  AND p.ViewCount IS NOT NULL\nORDER BY p.Score DESC, p.ViewCount DESC\nLIMIT 1;",
-      "iterations": 3,
+      "agent_sql": "SELECT p.Title, p.Score, p.ViewCount\nFROM posts p\nJOIN users u ON p.OwnerUserId = u.Id\nWHERE u.DisplayName IN ('Harvey Motulsky', 'Noah Snyder')\nORDER BY p.ViewCount DESC, p.Score DESC\nLIMIT 1;",
+      "iterations": 1,
       "history_correct": [
-        false,
-        false,
         false
       ],
       "final_correct": false,
